@@ -1,0 +1,12 @@
+Feature,Mean_Absolute_SHAP,Readable_Feature
+NDBI,1.2810318,NDBI
+Elevation,0.58016884,Elevation
+NDVI,0.5349775,NDVI
+Population,0.37695676,Population
+LandCover_Grassland,0.32030025,Land cover: Grassland
+LandCover_Cropland,0.10312894,Land cover: Cropland
+LandCover_Tree cover,0.1008397,LandCover_Tree cover
+LandCover_Shrubland,0.04050224,Land cover: Shrubland
+LandCover_Built-up land,0.03679269,LandCover_Built-up land
+LandCover_Permanent_water_bodies,0.02906811,Land cover: Permanent water bodies
+LandCover_Bare_sparse_vegetation,0.013680435,Land cover: Bare/sparse vegetation
