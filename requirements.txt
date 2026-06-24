@@ -1,10 +1,11 @@
 pandas
 numpy
-matplotlib
 scikit-learn
-jupyter
-notebook
-ipykernel
 xgboost
 shap
+matplotlib
+plotly
+folium
 streamlit
+streamlit-folium
+branca
