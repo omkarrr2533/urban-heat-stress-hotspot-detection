@@ -1,5 +1,6 @@
 import os
 import joblib
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -1105,9 +1106,9 @@ elif page == "Heat Vulnerability":
 # ==================================================
 
 elif page == "Cooling Strategy":
-        st.header("🛰 AI Cooling Intervention Simulator")
+    st.header("🛰 AI Cooling Intervention Simulator")
 
-        st.markdown(
+    st.markdown(
         """
         <div class="cool-note">
         This simulator performs <b>real-time AI prediction</b> using the trained
@@ -1118,9 +1119,9 @@ elif page == "Cooling Strategy":
         """,
         unsafe_allow_html=True,
     )
-    
-        MODEL_PATH = Path("outputs/models/xgboost_v3_landcover_model.pkl")
-        DATA_PATH = Path("data/processed/featured_uhi_v3.csv")
+
+    MODEL_PATH = Path("outputs/models/xgboost_v3_landcover_model.pkl")
+    DATA_PATH = Path("data/processed/featured_uhi_v3.csv")
 
     MODEL_FEATURES = [
         "NDVI",
@@ -1269,9 +1270,6 @@ elif page == "Cooling Strategy":
 
         return df
 
-    def apply_interventions(df):
-
-        simulated = df.copy()
     def apply_interventions(df):
 
         simulated = df.copy()
