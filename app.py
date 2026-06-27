@@ -1,8 +1,10 @@
 import os
+import joblib
+
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-
 
 # ==================================================
 # PAGE CONFIG
@@ -1103,117 +1105,931 @@ elif page == "Heat Vulnerability":
 # ==================================================
 
 elif page == "Cooling Strategy":
+        st.header("🛰 AI Cooling Intervention Simulator")
 
-    st.header("Cooling Strategy Planning")
-
-    st.markdown(
+        st.markdown(
         """
         <div class="cool-note">
-            <b>Purpose:</b> compare scenario-based predicted LST changes (°C) and identify
-            the most suitable cooling strategy for each location.
+        This simulator performs <b>real-time AI prediction</b> using the trained
+        XGBoost model. Instead of applying fixed temperature reductions, it modifies
+        urban environmental indicators based on the selected interventions and
+        predicts the updated Land Surface Temperature (LST) through model inference.
         </div>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
+    
+        MODEL_PATH = Path("outputs/models/xgboost_v3_landcover_model.pkl")
+        DATA_PATH = Path("data/processed/featured_uhi_v3.csv")
 
-    scenario_chart_data = scenario_summary.copy()
-    scenario_chart_data["Scenario_Display"] = scenario_chart_data["Scenario"].apply(
-        get_scenario_display_name
-    )
+    MODEL_FEATURES = [
+        "NDVI",
+        "NDBI",
+        "Elevation",
+        "Population",
+        "LandCover_Bare_sparse_vegetation",
+        "LandCover_Built-up land",
+        "LandCover_Cropland",
+        "LandCover_Grassland",
+        "LandCover_Permanent_water_bodies",
+        "LandCover_Shrubland",
+        "LandCover_Tree cover",
+    ]
 
-    fig = px.bar(
-        scenario_chart_data,
-        x="Scenario_Display",
-        y="Mean_Cooling_C",
-        text="Mean_Cooling_C",
-        title="Scenario-Based Predicted LST Change from Baseline",
-        color="Scenario",
-        color_discrete_map=INTERVENTION_COLOR_MAP
-    )
+    @st.cache_resource
+    def load_ai_model():
+        return joblib.load(MODEL_PATH)
 
-    fig.update_traces(
-        texttemplate="%{text:.2f} °C",
-        textposition="outside",
-        marker_line_width=0
-    )
+    @st.cache_data
+    def load_simulation_dataset():
+        return pd.read_csv(DATA_PATH)
 
-    fig.update_layout(
-        showlegend=False,
-        height=380,
-        yaxis_title="Predicted LST Change (°C)",
-        xaxis_title="Cooling Intervention Scenario"
-    )
+    model = load_ai_model()
 
-    st.plotly_chart(style_chart(fig), use_container_width=True)
+    simulation_df = load_simulation_dataset().copy()
 
-    intervention_options = sorted(
-        scenario_map["Recommended_Intervention"].dropna().astype(str).unique()
-    )
+    missing_features = [
+        feature
+        for feature in MODEL_FEATURES
+        if feature not in simulation_df.columns
+    ]
 
-    selected_intervention = st.selectbox(
-        "Filter map by recommended intervention",
-        options=["All"] + intervention_options
-    )
+    if len(missing_features) > 0:
 
-    if selected_intervention == "All":
-        filtered_scenarios = scenario_map.copy()
-    else:
-        filtered_scenarios = scenario_map[
-            scenario_map["Recommended_Intervention"].astype(str)
-            == selected_intervention
-        ].copy()
+        st.error(
+            "Required model features are missing:\n\n"
+            + "\n".join(missing_features)
+        )
 
-    if len(filtered_scenarios) > 0:
-        hover_columns = clean_map_columns(
-            filtered_scenarios,
-            [
-                "Baseline_Predicted_LST_C",
-                "Greening_Cooling_C",
-                "Cool_Surface_Cooling_C",
-                "Best_Cooling_C",
-                "Population",
-                "Zone_ID"
+        st.stop()
+
+    st.markdown("---")
+
+    left_col, right_col = st.columns([1, 2])
+
+    with left_col:
+
+        st.subheader("Cooling Interventions")
+
+        green_cover = st.slider(
+            "🌿 Green Cover Increase (%)",
+            min_value=0,
+            max_value=100,
+            value=20,
+            step=1,
+        )
+
+        tree_cover = st.slider(
+            "🌳 Tree Plantation (%)",
+            min_value=0,
+            max_value=100,
+            value=25,
+            step=1,
+        )
+
+        cool_roofs = st.slider(
+            "🏠 Cool Roof Adoption (%)",
+            min_value=0,
+            max_value=100,
+            value=15,
+            step=1,
+        )
+
+        permeable_surface = st.slider(
+            "🧱 Permeable Surface (%)",
+            min_value=0,
+            max_value=100,
+            value=15,
+            step=1,
+        )
+
+        builtup_reduction = st.slider(
+            "🏢 Built-up Reduction (%)",
+            min_value=0,
+            max_value=100,
+            value=10,
+            step=1,
+        )
+
+        run_simulation = st.button(
+            "🛰 Run AI Simulation",
+            use_container_width=True,
+            type="primary",
+        )
+
+    with right_col:
+
+        st.markdown(
+        """
+        ### Simulation Workflow
+
+        1. Selected interventions modify environmental indicators.
+
+        2. NDVI increases according to vegetation-related actions.
+
+        3. NDBI decreases according to built-up reduction.
+
+        4. Land-cover proportions are updated.
+
+        5. The trained XGBoost model predicts the new LST.
+
+        6. Results are compared against the original scenario.
+        """
+        )
+
+    st.markdown("---")
+
+    def clip(series, low=None, high=None):
+
+        if low is not None:
+            series = np.maximum(series, low)
+
+        if high is not None:
+            series = np.minimum(series, high)
+
+        return series
+
+    def normalize_landcover(df):
+
+        cols = [
+            "LandCover_Bare_sparse_vegetation",
+            "LandCover_Built-up land",
+            "LandCover_Cropland",
+            "LandCover_Grassland",
+            "LandCover_Permanent_water_bodies",
+            "LandCover_Shrubland",
+            "LandCover_Tree cover",
+        ]
+
+        total = df[cols].sum(axis=1)
+
+        total = total.replace(0, 1)
+
+        df[cols] = df[cols].div(total, axis=0)
+
+        return df
+
+    def apply_interventions(df):
+
+        simulated = df.copy()
+    def apply_interventions(df):
+
+        simulated = df.copy()
+
+        # ==========================================================
+        # NDVI MODIFICATION
+        # ==========================================================
+
+        ndvi_increase = (
+            green_cover * 0.0025
+            + tree_cover * 0.0035
+            + permeable_surface * 0.0010
+        )
+
+        simulated["NDVI"] = clip(
+            simulated["NDVI"] + ndvi_increase,
+            -1,
+            1,
+        )
+
+        # ==========================================================
+        # NDBI MODIFICATION
+        # ==========================================================
+
+        ndbi_decrease = (
+            builtup_reduction * 0.0020
+            + green_cover * 0.0010
+            + tree_cover * 0.0010
+        )
+
+        simulated["NDBI"] = clip(
+            simulated["NDBI"] - ndbi_decrease,
+            -1,
+            1,
+        )
+
+        # ==========================================================
+        # TREE COVER
+        # ==========================================================
+
+        simulated["LandCover_Tree cover"] = clip(
+            simulated["LandCover_Tree cover"]
+            + tree_cover * 0.004
+            + green_cover * 0.002,
+            0,
+            None,
+        )
+
+        # ==========================================================
+        # BUILT-UP LAND
+        # ==========================================================
+
+        simulated["LandCover_Built-up land"] = clip(
+            simulated["LandCover_Built-up land"]
+            - builtup_reduction * 0.004
+            - permeable_surface * 0.002
+            - cool_roofs * 0.001,
+            0,
+            None,
+        )
+
+        # ==========================================================
+        # CROPLAND
+        # ==========================================================
+
+        simulated["LandCover_Cropland"] = clip(
+            simulated["LandCover_Cropland"]
+            + green_cover * 0.0005,
+            0,
+            None,
+        )
+
+        # ==========================================================
+        # GRASSLAND
+        # ==========================================================
+
+        simulated["LandCover_Grassland"] = clip(
+            simulated["LandCover_Grassland"]
+            + green_cover * 0.001
+            + permeable_surface * 0.001,
+            0,
+            None,
+        )
+
+        # ==========================================================
+        # SHRUBLAND
+        # ==========================================================
+
+        simulated["LandCover_Shrubland"] = clip(
+            simulated["LandCover_Shrubland"]
+            + green_cover * 0.0005,
+            0,
+            None,
+        )
+
+        # ==========================================================
+        # BARE / SPARSE VEGETATION
+        # ==========================================================
+
+        simulated["LandCover_Bare_sparse_vegetation"] = clip(
+            simulated["LandCover_Bare_sparse_vegetation"]
+            - green_cover * 0.001,
+            0,
+            None,
+        )
+
+        # ==========================================================
+        # WATER BODIES
+        # ==========================================================
+
+        simulated["LandCover_Permanent_water_bodies"] = clip(
+            simulated["LandCover_Permanent_water_bodies"],
+            0,
+            None,
+        )
+
+        simulated = normalize_landcover(simulated)
+
+        return simulated
+
+    # ==========================================================
+    # HOTSPOT CLASSIFICATION
+    # ==========================================================
+
+    def classify_hotspot(lst):
+
+        if lst >= 42:
+            return "Extreme"
+
+        elif lst >= 38:
+            return "Very High"
+
+        elif lst >= 34:
+            return "High"
+
+        elif lst >= 30:
+            return "Moderate"
+
+        return "Low"
+
+    # ==========================================================
+    # RUN AI SIMULATION
+    # ==========================================================
+
+    if run_simulation:
+
+        simulated_df = apply_interventions(simulation_df)
+
+        before_prediction = model.predict(
+            simulation_df[MODEL_FEATURES]
+        )
+
+        after_prediction = model.predict(
+            simulated_df[MODEL_FEATURES]
+        )
+
+        simulated_df["LST_Before"] = before_prediction
+        simulated_df["LST_After"] = after_prediction
+
+        simulated_df["Temperature_Reduction"] = (
+            simulated_df["LST_Before"]
+            - simulated_df["LST_After"]
+        )
+
+        simulated_df["Hotspot_Before"] = (
+            simulated_df["LST_Before"]
+            .apply(classify_hotspot)
+        )
+
+        simulated_df["Hotspot_After"] = (
+            simulated_df["LST_After"]
+            .apply(classify_hotspot)
+        )
+
+        avg_before = simulated_df["LST_Before"].mean()
+        avg_after = simulated_df["LST_After"].mean()
+
+        max_before = simulated_df["LST_Before"].max()
+        max_after = simulated_df["LST_After"].max()
+
+        reduction = avg_before - avg_after
+
+        hotspots_before = (
+            simulated_df["Hotspot_Before"] != "Low"
+        ).sum()
+
+        hotspots_after = (
+            simulated_df["Hotspot_After"] != "Low"
+        ).sum()
+
+        if hotspots_before == 0:
+
+            improvement = 0
+
+        else:
+
+            improvement = (
+                (hotspots_before - hotspots_after)
+                / hotspots_before
+            ) * 100
+        # ==========================================================
+        # KPI DASHBOARD
+        # ==========================================================
+
+        st.markdown("## 📊 AI Simulation Results")
+
+        kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+
+        kpi1.metric(
+            "Average LST Before",
+            f"{avg_before:.2f} °C"
+        )
+
+        kpi2.metric(
+            "Average LST After",
+            f"{avg_after:.2f} °C",
+            delta=f"-{reduction:.2f} °C"
+        )
+
+        kpi3.metric(
+            "Maximum LST Before",
+            f"{max_before:.2f} °C"
+        )
+
+        kpi4.metric(
+            "Maximum LST After",
+            f"{max_after:.2f} °C",
+            delta=f"-{(max_before-max_after):.2f} °C"
+        )
+
+        st.markdown("")
+
+        kpi5, kpi6, kpi7 = st.columns(3)
+
+        kpi5.metric(
+            "Hotspots Before",
+            int(hotspots_before)
+        )
+
+        kpi6.metric(
+            "Hotspots After",
+            int(hotspots_after)
+        )
+
+        kpi7.metric(
+            "Overall Improvement",
+            f"{improvement:.1f}%"
+        )
+
+        st.markdown("---")
+
+        # ==========================================================
+        # BEFORE VS AFTER COMPARISON
+        # ==========================================================
+
+        st.subheader("📈 Average Land Surface Temperature Comparison")
+
+        comparison_df = pd.DataFrame(
+            {
+                "Scenario": [
+                    "Before Intervention",
+                    "After Intervention"
+                ],
+                "Average LST": [
+                    avg_before,
+                    avg_after
+                ]
+            }
+        )
+
+        fig = px.bar(
+            comparison_df,
+            x="Scenario",
+            y="Average LST",
+            color="Scenario",
+            text="Average LST",
+            template="plotly_white",
+            color_discrete_sequence=[
+                "#E4572E",
+                "#2E8B57"
             ]
         )
 
-        fig = make_small_clean_map(
-            dataframe=filtered_scenarios,
-            color_column="Recommended_Intervention",
-            hover_columns=hover_columns,
-            title="Recommended Cooling Strategy by Location",
-            color_map=INTERVENTION_COLOR_MAP,
-            height=610
+        fig.update_traces(
+            texttemplate="%.2f °C",
+            textposition="outside"
+        )
+
+        fig.update_layout(
+            height=470,
+            showlegend=False,
+            xaxis_title="",
+            yaxis_title="Average LST (°C)"
+        )
+
+        st.plotly_chart(
+            style_chart(fig),
+            use_container_width=True
+        )
+
+        # ==========================================================
+        # TEMPERATURE REDUCTION DISTRIBUTION
+        # ==========================================================
+
+        st.subheader("📉 Pixel-wise Temperature Reduction")
+
+        fig = px.histogram(
+            simulated_df,
+            x="Temperature_Reduction",
+            nbins=40,
+            template="plotly_white",
+            color_discrete_sequence=[
+                "#4F7D50"
+            ]
+        )
+
+        fig.update_layout(
+            height=420,
+            xaxis_title="Temperature Reduction (°C)",
+            yaxis_title="Number of Pixels"
+        )
+
+        st.plotly_chart(
+            style_chart(fig),
+            use_container_width=True
+        )
+
+        st.markdown("---")
+                # ==========================================================
+        # AI HOTSPOT MAP
+        # ==========================================================
+
+        st.subheader("🛰 AI Predicted Heat Hotspots")
+
+        hotspot_colors = {
+            "Low": "#4F7D50",
+            "Moderate": "#F7B733",
+            "High": "#FF7A1A",
+            "Very High": "#E44720",
+            "Extreme": "#8B0000"
+        }
+
+        map_df = simulated_df.copy()
+
+        fig = px.scatter_mapbox(
+            map_df,
+            lat="Latitude",
+            lon="Longitude",
+            color="Hotspot_After",
+            hover_name="Hotspot_After",
+            hover_data={
+                "Latitude":":.4f",
+                "Longitude":":.4f",
+                "LST_Before":":.2f",
+                "LST_After":":.2f",
+                "Temperature_Reduction":":.2f"
+            },
+            color_discrete_map=hotspot_colors,
+            zoom=11,
+            height=650
         )
 
         fig.update_traces(
             marker=dict(
-                size=6,
-                opacity=0.56
+                size=7,
+                opacity=0.72
             )
         )
 
-        st.plotly_chart(fig, use_container_width=True)
+        fig.update_layout(
+            mapbox_style="carto-positron",
+            margin=dict(
+                l=0,
+                r=0,
+                t=0,
+                b=0
+            ),
+            legend_title="Hotspot Category"
+        )
+
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
+
+        st.markdown("---")
+
+        # ==========================================================
+        # UPDATED HOTSPOT TABLE
+        # ==========================================================
+
+        st.subheader("🔥 Updated Hotspot Classification")
+
+        hotspot_table = (
+            simulated_df[
+                [
+                    "Latitude",
+                    "Longitude",
+                    "LST_Before",
+                    "LST_After",
+                    "Temperature_Reduction",
+                    "Hotspot_Before",
+                    "Hotspot_After"
+                ]
+            ]
+            .sort_values(
+                by="LST_After",
+                ascending=False
+            )
+            .reset_index(drop=True)
+        )
+
+        hotspot_table.rename(
+            columns={
+                "LST_Before":"Before (°C)",
+                "LST_After":"After (°C)",
+                "Temperature_Reduction":"Cooling (°C)",
+                "Hotspot_Before":"Category Before",
+                "Hotspot_After":"Category After"
+            },
+            inplace=True
+        )
+
+        st.dataframe(
+            hotspot_table,
+            use_container_width=True,
+            hide_index=True
+        )
+
+        st.markdown("---")
+
+        # ==========================================================
+        # HOTSPOT SUMMARY
+        # ==========================================================
+
+        st.subheader("📍 Hotspot Category Summary")
+
+        before_summary = (
+            simulated_df["Hotspot_Before"]
+            .value_counts()
+            .rename("Before")
+        )
+
+        after_summary = (
+            simulated_df["Hotspot_After"]
+            .value_counts()
+            .rename("After")
+        )
+
+        hotspot_summary = (
+            pd.concat(
+                [
+                    before_summary,
+                    after_summary
+                ],
+                axis=1
+            )
+            .fillna(0)
+            .astype(int)
+        )
+
+        hotspot_summary = hotspot_summary.reindex(
+            [
+                "Extreme",
+                "Very High",
+                "High",
+                "Moderate",
+                "Low"
+            ],
+            fill_value=0
+        )
+
+        hotspot_summary = hotspot_summary.reset_index()
+
+        hotspot_summary.columns = [
+            "Hotspot Category",
+            "Before",
+            "After"
+        ]
+
+        fig = px.bar(
+            hotspot_summary,
+            x="Hotspot Category",
+            y=[
+                "Before",
+                "After"
+            ],
+            barmode="group",
+            template="plotly_white",
+            color_discrete_sequence=[
+                "#E4572E",
+                "#4F7D50"
+            ]
+        )
+
+        fig.update_layout(
+            height=430,
+            yaxis_title="Number of Pixels"
+        )
+
+        st.plotly_chart(
+            style_chart(fig),
+            use_container_width=True
+        )
+
+        st.markdown("---")
+        # ==========================================================
+        # MUNICIPAL RECOMMENDATION ENGINE
+        # ==========================================================
+
+        st.subheader("🏛 AI Municipal Recommendation")
+
+        recommendations = []
+
+        if avg_after >= 40:
+            recommendations.append(
+                "🔥 Immediate intervention is recommended for high-temperature urban zones."
+            )
+
+        if tree_cover < 30:
+            recommendations.append(
+                "🌳 Increase urban tree plantation to improve canopy density and shading."
+            )
+
+        if green_cover < 30:
+            recommendations.append(
+                "🌿 Develop additional green parks, roadside plantations, and urban forests."
+            )
+
+        if cool_roofs < 25:
+            recommendations.append(
+                "🏠 Promote cool roof technology for public and commercial buildings."
+            )
+
+        if permeable_surface < 25:
+            recommendations.append(
+                "🧱 Replace impervious pavements with permeable materials wherever feasible."
+            )
+
+        if builtup_reduction < 20:
+            recommendations.append(
+                "🏢 Encourage redevelopment strategies that reduce excessive built-up density."
+            )
+
+        if reduction >= 2:
+            recommendations.append(
+                "❄ The selected intervention scenario shows strong cooling potential and should be prioritized."
+            )
+
+        if len(recommendations) == 0:
+
+            recommendations.append(
+                "✅ The current intervention strategy is balanced. Continue monitoring urban heat conditions periodically."
+            )
+
+        st.success("\n\n".join(recommendations))
+
+        st.markdown("---")
+
+        # ==========================================================
+        # SIMULATION SUMMARY
+        # ==========================================================
+
+        st.subheader("📋 Simulation Summary")
+
+        summary_df = pd.DataFrame(
+            {
+                "Metric": [
+                    "Average LST Before (°C)",
+                    "Average LST After (°C)",
+                    "Temperature Reduction (°C)",
+                    "Maximum LST Before (°C)",
+                    "Maximum LST After (°C)",
+                    "Hotspots Before",
+                    "Hotspots After",
+                    "Overall Improvement (%)"
+                ],
+                "Value": [
+                    round(avg_before, 2),
+                    round(avg_after, 2),
+                    round(reduction, 2),
+                    round(max_before, 2),
+                    round(max_after, 2),
+                    int(hotspots_before),
+                    int(hotspots_after),
+                    round(improvement, 2)
+                ]
+            }
+        )
+
+        st.dataframe(
+            summary_df,
+            use_container_width=True,
+            hide_index=True
+        )
+
+        st.markdown("---")
+
+        # ==========================================================
+        # DOWNLOAD RESULTS
+        # ==========================================================
+
+        st.subheader("📥 Download AI Simulation Results")
+
+        download_df = simulated_df.copy()
+
+        csv = download_df.to_csv(index=False).encode("utf-8")
+
+        st.download_button(
+            label="📄 Download Simulation Results (CSV)",
+            data=csv,
+            file_name="UrbanHeat_AI_Simulation.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
+
+        st.markdown("---")
+
+        # ==========================================================
+        # DISCLAIMER
+        # ==========================================================
+
+        st.info(
+            """
+### AI Decision Support Disclaimer
+
+Predictions are AI-based decision-support estimates generated using the
+trained XGBoost Urban Heat Prediction model.
+
+Actual cooling performance depends on:
+
+• implementation quality
+
+• environmental conditions
+
+• land availability
+
+• engineering feasibility
+
+• maintenance practices
+
+• climatic variability
+
+The simulator is intended to support municipal planning and urban
+heat mitigation decisions and should not replace detailed engineering
+or environmental assessments.
+"""
+        )
 
     else:
-        st.warning("No locations match the selected intervention.")
 
-    st.subheader("Top Zones by Cooling Potential")
-    st.dataframe(intervention_zones, use_container_width=True, hide_index=True)
+        st.info(
+            """
+Adjust the intervention sliders and click
 
-    st.markdown(
-        """
-        <div class="risk-note">
-            <b>Decision-support disclaimer:</b> “+20% green cover” and cool/permeable-surface
-            outputs represent model-based predicted LST changes from the baseline scenario.
-            They are planning estimates, not guaranteed real-world cooling outcomes.
-            Final implementation requires field verification, engineering design, cost analysis,
-            land-availability assessment, and municipal feasibility review.
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+### 🛰 Run AI Simulation
 
+to generate a real-time AI prediction using the trained XGBoost model.
+"""
+        )
+            # ==========================================================
+        # ADDITIONAL ANALYTICS
+        # ==========================================================
 
+        st.markdown("---")
+
+        st.subheader("📈 Intervention Effectiveness")
+
+        effectiveness_df = pd.DataFrame(
+            {
+                "Intervention": [
+                    "Green Cover",
+                    "Tree Plantation",
+                    "Cool Roof",
+                    "Permeable Surface",
+                    "Built-up Reduction"
+                ],
+                "Selected (%)": [
+                    green_cover,
+                    tree_cover,
+                    cool_roofs,
+                    permeable_surface,
+                    builtup_reduction
+                ]
+            }
+        )
+
+        fig = px.bar(
+            effectiveness_df,
+            x="Intervention",
+            y="Selected (%)",
+            color="Selected (%)",
+            color_continuous_scale=[
+                "#F7B733",
+                "#FF7A1A",
+                "#E44720",
+                "#4F7D50"
+            ],
+            template="plotly_white"
+        )
+
+        fig.update_layout(
+            height=420,
+            coloraxis_showscale=False,
+            xaxis_title="",
+            yaxis_title="Selected Percentage"
+        )
+
+        st.plotly_chart(
+            style_chart(fig),
+            use_container_width=True
+        )
+
+        # ==========================================================
+        # AI INSIGHTS
+        # ==========================================================
+
+        st.subheader("🤖 AI Insights")
+
+        insight_1 = (
+            "Higher NDVI values generally reduce predicted urban heat."
+        )
+
+        insight_2 = (
+            "Reducing built-up intensity lowers the predicted LST in densely urbanized regions."
+        )
+
+        insight_3 = (
+            "Tree plantation contributes both through increased NDVI and increased tree-cover proportion."
+        )
+
+        insight_4 = (
+            "Combining multiple interventions usually produces greater cooling benefits than implementing a single intervention."
+        )
+
+        st.markdown(
+            f"""
+<div class="cool-note">
+
+<b>Key AI Observations</b>
+
+• {insight_1}
+
+• {insight_2}
+
+• {insight_3}
+
+• {insight_4}
+
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+
+    # ==========================================================
+    # END OF COOLING STRATEGY
+    # ==========================================================
+    
 # ==================================================
 # MODEL VALIDATION
 # ==================================================
@@ -1242,7 +2058,10 @@ elif page == "Model Validation":
     ]
 
     if metric_options:
-        selected_metric = st.selectbox("Select performance metric", metric_options)
+        selected_metric = st.selectbox(
+            "Select performance metric",
+            metric_options
+        )
 
         fig = px.bar(
             model_comparison,
@@ -1251,21 +2070,26 @@ elif page == "Model Validation":
             color="Dataset",
             text_auto=".3f",
             title=f"Dataset V2 vs Dataset V3: {selected_metric}",
-            color_discrete_sequence=["#b82025", "#ff7a1a", "#4f7d50"]
+            color_discrete_sequence=[
+                "#b82025",
+                "#ff7a1a",
+                "#4f7d50"
+            ]
         )
 
-        st.plotly_chart(style_chart(fig), use_container_width=True)
+        st.plotly_chart(
+            style_chart(fig),
+            use_container_width=True
+        )
 
     st.info(
         "Latitude and Longitude are used only for mapping and spatial grouping. "
         "They are excluded from model features to prevent target leakage and spatial leakage."
     )
-
-
-# ==================================================
+        
+#===================================================
 # ABOUT PROJECT
 # ==================================================
-
 elif page == "About Project":
 
     st.header("About the Project")
