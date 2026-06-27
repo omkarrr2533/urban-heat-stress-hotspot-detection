@@ -1,1 +1,8 @@
 outputs/*.pkl
+
+# Python
+__pycache__/
+*.pyc
+
+# Local editor / preview config
+.claude/
