@@ -2,6 +2,7 @@ pandas
 numpy
 scikit-learn
 xgboost
+joblib
 shap
 matplotlib
 plotly
@@ -9,3 +10,5 @@ folium
 streamlit
 streamlit-folium
 branca
+fastapi
+uvicorn[standard]
