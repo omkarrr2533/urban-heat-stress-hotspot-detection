@@ -1,22 +1,15 @@
-def classify_heat(lst):
+"""Heat-risk classification helpers.
 
-    if lst < 30:
-        return "Low Risk"
+The canonical 5-tier classifier (Low / Moderate / High / Very High / Extreme)
+lives in ``src/inference.py`` and is used by the dashboard, the API and the
+training notebooks so every surface agrees on thresholds.
+"""
 
-    elif lst < 35:
-        return "Moderate Risk"
-
-    elif lst < 40:
-        return "High Risk"
-
-    else:
-        return "Extreme Hotspot"
+from .inference import classify_hotspot
 
 
-def detect_hotspots(df):
-
-    df["Heat_Risk"] = df["Predicted_LST"].apply(
-        classify_heat
-    )
-
+def detect_hotspots(df, lst_column: str = "Predicted_LST"):
+    """Add a ``Heat_Risk`` column by classifying each predicted LST value."""
+    df = df.copy()
+    df["Heat_Risk"] = df[lst_column].apply(classify_hotspot)
     return df

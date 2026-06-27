@@ -1,11 +1,10 @@
 import os
-import joblib
-from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+
+from src import inference
 
 st.set_page_config(
     page_title="UrbanHeat AI · Thermal Intelligence Platform",
@@ -844,22 +843,15 @@ elif page == "Cooling Strategy":
         "environmental indicators and the model re-predicts Land Surface Temperature through inference."
     )
 
-    MODEL_PATH = Path("outputs/models/xgboost_v3_landcover_model.pkl")
-    DATA_PATH  = Path("data/processed/featured_uhi_v3.csv")
-
-    MODEL_FEATURES = [
-        "NDVI", "NDBI", "Elevation", "Population",
-        "LandCover_Bare_sparse_vegetation", "LandCover_Built-up land", "LandCover_Cropland",
-        "LandCover_Grassland", "LandCover_Permanent_water_bodies", "LandCover_Shrubland", "LandCover_Tree cover",
-    ]
-
+    # Model loading, prediction and simulation all live in src/inference.py so the
+    # dashboard and the REST API (api.py) share one source of truth.
     @st.cache_resource
     def load_ai_model():
-        return joblib.load(MODEL_PATH)
+        return inference.load_model()
 
     @st.cache_data
     def load_simulation_dataset():
-        return pd.read_csv(DATA_PATH)
+        return inference.load_dataset()
 
     try:
         model = load_ai_model()
@@ -872,9 +864,8 @@ elif page == "Cooling Strategy":
         st.markdown(f'<div class="alert alert-risk"><b>Missing dependency:</b> {err}. Install it with <code>pip install xgboost</code> and restart.</div>', unsafe_allow_html=True)
         st.stop()
 
-    missing_features = [f for f in MODEL_FEATURES if f not in simulation_df.columns]
-    if missing_features:
-        st.markdown('<div class="alert alert-risk"><b>Required model features are missing:</b><br>' + "<br>".join(missing_features) + '</div>', unsafe_allow_html=True)
+    if inference.missing_features(simulation_df):
+        st.markdown('<div class="alert alert-risk"><b>Required model features are missing:</b><br>' + "<br>".join(inference.missing_features(simulation_df)) + '</div>', unsafe_allow_html=True)
         st.stop()
 
     left_col, right_col = st.columns([1, 1.8])
@@ -908,64 +899,46 @@ elif page == "Cooling Strategy":
             unsafe_allow_html=True
         )
 
-    def _clip(series, low=None, high=None):
-        if low is not None:
-            series = np.maximum(series, low)
-        if high is not None:
-            series = np.minimum(series, high)
-        return series
+    with st.expander("🔬 Methodology & assumptions — how the simulator works (read before citing numbers)"):
+        st.markdown(
+            """
+            This is a **transparent "what-if" engine**, not a validated causal model. Each step is open:
 
-    def normalize_landcover(df):
-        cols = ["LandCover_Bare_sparse_vegetation", "LandCover_Built-up land", "LandCover_Cropland",
-                "LandCover_Grassland", "LandCover_Permanent_water_bodies", "LandCover_Shrubland", "LandCover_Tree cover"]
-        total = df[cols].sum(axis=1).replace(0, 1)
-        df[cols] = df[cols].div(total, axis=0)
-        return df
+            1. **Interventions → indicators.** Slider percentages are translated into changes in
+               NDVI, NDBI and land-cover fractions using *fixed sensitivity coefficients*
+               (shown below). **These coefficients are planning assumptions, not empirically
+               calibrated effects** — they encode the agreed direction and rough magnitude of each action.
+            2. **Land-cover is re-normalised** so fractions still sum to 1.
+            3. **The trained XGBoost model re-predicts LST** from the modified indicators.
+            4. **Before vs After is compared** at every grid point.
 
-    def apply_interventions(df):
-        s = df.copy()
-        ndvi_increase = green_cover * 0.0025 + tree_cover * 0.0035 + permeable_surface * 0.0010
-        s["NDVI"] = _clip(s["NDVI"] + ndvi_increase, -1, 1)
-        ndbi_decrease = builtup_reduction * 0.0020 + green_cover * 0.0010 + tree_cover * 0.0010
-        s["NDBI"] = _clip(s["NDBI"] - ndbi_decrease, -1, 1)
-        s["LandCover_Tree cover"]             = _clip(s["LandCover_Tree cover"] + tree_cover * 0.004 + green_cover * 0.002, 0)
-        s["LandCover_Built-up land"]          = _clip(s["LandCover_Built-up land"] - builtup_reduction * 0.004 - permeable_surface * 0.002 - cool_roofs * 0.001, 0)
-        s["LandCover_Cropland"]               = _clip(s["LandCover_Cropland"] + green_cover * 0.0005, 0)
-        s["LandCover_Grassland"]              = _clip(s["LandCover_Grassland"] + green_cover * 0.001 + permeable_surface * 0.001, 0)
-        s["LandCover_Shrubland"]              = _clip(s["LandCover_Shrubland"] + green_cover * 0.0005, 0)
-        s["LandCover_Bare_sparse_vegetation"] = _clip(s["LandCover_Bare_sparse_vegetation"] - green_cover * 0.001, 0)
-        s["LandCover_Permanent_water_bodies"] = _clip(s["LandCover_Permanent_water_bodies"], 0)
-        return normalize_landcover(s)
-
-    def classify_hotspot(lst):
-        if lst >= 42:
-            return "Extreme"
-        if lst >= 38:
-            return "Very High"
-        if lst >= 34:
-            return "High"
-        if lst >= 30:
-            return "Moderate"
-        return "Low"
+            Because the coefficients are assumptions, treat the output as a **relative comparison
+            between scenarios for prioritisation**, not a guaranteed real-world temperature drop.
+            All coefficients live in one place (`src/inference.py → INTERVENTION_COEFFICIENTS`)
+            and can be recalibrated against field studies.
+            """
+        )
+        coeff_rows = []
+        for indicator, mapping in inference.INTERVENTION_COEFFICIENTS.items():
+            for action, value in mapping.items():
+                coeff_rows.append({"Affected indicator": indicator, "Intervention": action, "Δ per +1%": value})
+        st.dataframe(pd.DataFrame(coeff_rows), use_container_width=True, hide_index=True)
 
     if run_simulation:
-        simulated_df = apply_interventions(simulation_df)
-        simulated_df["LST_Before"]            = model.predict(simulation_df[MODEL_FEATURES])
-        simulated_df["LST_After"]             = model.predict(simulated_df[MODEL_FEATURES])
-        simulated_df["Temperature_Reduction"] = simulated_df["LST_Before"] - simulated_df["LST_After"]
-        simulated_df["Hotspot_Before"]        = simulated_df["LST_Before"].apply(classify_hotspot)
-        simulated_df["Hotspot_After"]         = simulated_df["LST_After"].apply(classify_hotspot)
-
-        avg_before, avg_after = simulated_df["LST_Before"].mean(), simulated_df["LST_After"].mean()
-        max_before, max_after = simulated_df["LST_Before"].max(), simulated_df["LST_After"].max()
-        reduction = avg_before - avg_after
-        pixels_cooled_pct = (simulated_df["Temperature_Reduction"] > 0).mean() * 100
-        # "Hotspots" = Extreme zones (LST >= 42 deg C): the genuinely dangerous, actionable areas.
-        # This city's land-surface temps are uniformly high (>30 deg C almost everywhere), so a
-        # "not Low" count can't reflect improvement -- the Extreme threshold tracks real heat-risk reduction.
-        hotspots_before = (simulated_df["Hotspot_Before"] == "Extreme").sum()
-        hotspots_after  = (simulated_df["Hotspot_After"] == "Extreme").sum()
-        improvement = 0 if hotspots_before == 0 else (hotspots_before - hotspots_after) / hotspots_before * 100
+        simulated_df, summary = inference.simulate(
+            model, simulation_df,
+            green_cover=green_cover, tree_cover=tree_cover, cool_roofs=cool_roofs,
+            permeable_surface=permeable_surface, builtup_reduction=builtup_reduction,
+        )
+        avg_before, avg_after = summary["avg_lst_before"], summary["avg_lst_after"]
+        max_before, max_after = summary["max_lst_before"], summary["max_lst_after"]
+        reduction = summary["mean_reduction"]
+        pixels_cooled_pct = summary["pixels_cooled_pct"]
+        # "Hotspots" here = Extreme zones (LST >= 42 deg C): the genuinely dangerous areas.
+        # The city is uniformly >30 deg C, so a "not Low" count can't reflect improvement.
+        hotspots_before = summary["extreme_zones_before"]
+        hotspots_after = summary["extreme_zones_after"]
+        improvement = summary["extreme_zone_reduction_pct"]
 
         section_header("Results", "📊 AI Simulation Results")
         cards = [

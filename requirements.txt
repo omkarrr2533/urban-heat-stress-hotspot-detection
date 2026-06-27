@@ -10,3 +10,5 @@ folium
 streamlit
 streamlit-folium
 branca
+fastapi
+uvicorn[standard]
