@@ -1,0 +1,230 @@
+{
+  "checks": [
+    {
+      "check": "V3 audit dimensions",
+      "passed": true,
+      "detail": "(9893, 10)"
+    },
+    {
+      "check": "V3 missing and duplicate audit",
+      "passed": true,
+      "detail": "0 missing cells; 0 duplicate rows"
+    },
+    {
+      "check": "Model feature order",
+      "passed": true,
+      "detail": "11 features in identical order"
+    },
+    {
+      "check": "One-hot integrity",
+      "passed": true,
+      "detail": "Every row sums to 1"
+    },
+    {
+      "check": "Coordinates excluded",
+      "passed": true,
+      "detail": "Spatial fields are not predictors"
+    },
+    {
+      "check": "Saved model/output agreement",
+      "passed": true,
+      "detail": "Maximum absolute difference 1.9067383e-06 \u00b0C"
+    },
+    {
+      "check": "HVI formula",
+      "passed": true,
+      "detail": "Equal-weight mean reproduced exactly"
+    },
+    {
+      "check": "Spatial-zone lineage",
+      "passed": true,
+      "detail": "334 shared approximately 0.02-degree zones"
+    },
+    {
+      "check": "Hotspot quartile lineage",
+      "passed": true,
+      "detail": "2472 points in the upper observed-LST quartile"
+    },
+    {
+      "check": "Zero-intervention identity",
+      "passed": true,
+      "detail": "No change for all-zero controls"
+    },
+    {
+      "check": "Scenario bounds and normalization",
+      "passed": true,
+      "detail": "Valid even at 100% control settings"
+    },
+    {
+      "check": "Hotspot boundary rules",
+      "passed": true,
+      "detail": "Canonical API classifier checked at thresholds"
+    },
+    {
+      "check": "API health",
+      "passed": true,
+      "detail": "GET /health \u2192 200"
+    },
+    {
+      "check": "API metadata",
+      "passed": true,
+      "detail": "GET /model-info \u2192 200; 11 features"
+    },
+    {
+      "check": "API single prediction",
+      "passed": true,
+      "detail": "POST /predict agrees with canonical inference to 0.001 \u00b0C"
+    },
+    {
+      "check": "Empty request rejected",
+      "passed": true,
+      "detail": "POST /predict with empty list \u2192 400"
+    },
+    {
+      "check": "Incomplete feature schema rejected",
+      "passed": true,
+      "detail": "Missing required numeric features \u2192 422"
+    },
+    {
+      "check": "Upper control bound enforced",
+      "passed": true,
+      "detail": "green_cover=101 \u2192 422"
+    },
+    {
+      "check": "Lower control bound enforced",
+      "passed": true,
+      "detail": "green_cover=-1 \u2192 422"
+    },
+    {
+      "check": "API zero scenario",
+      "passed": true,
+      "detail": "All-zero scenario returns zero mean change"
+    },
+    {
+      "check": "API/dashboard simulation parity",
+      "passed": true,
+      "detail": "Same canonical simulation; API summary rounded to four decimals"
+    },
+    {
+      "check": "Notebook greening reproduction",
+      "passed": true,
+      "detail": "Multiplicative notebook scenario reproduced"
+    },
+    {
+      "check": "Notebook cool-surface reproduction",
+      "passed": true,
+      "detail": "Multiplicative notebook scenario reproduced"
+    },
+    {
+      "check": "Published metric lineage",
+      "passed": true,
+      "detail": "Dashboard comparison agrees with saved report CSV"
+    },
+    {
+      "check": "Grouped-fold separation",
+      "passed": true,
+      "detail": "334 groups; each group assigned to one test fold"
+    },
+    {
+      "check": "No shared train/test spatial groups",
+      "passed": true,
+      "detail": "Zero group intersection in all five folds"
+    }
+  ],
+  "passed": 26,
+  "total": 26,
+  "pooled_oof": {
+    "r2": 0.5697321143838883,
+    "mae_c": 1.6660933855732654,
+    "rmse_c": 2.1181262518265744
+  },
+  "mean_fold_metrics": {
+    "r2": 0.5684398255675022,
+    "mae_c": 1.666092617637054,
+    "rmse_c": 2.117880018189038
+  },
+  "fold_metrics": [
+    {
+      "fold": 1,
+      "train_n": 7914,
+      "test_n": 1979,
+      "r2": 0.5906198461574865,
+      "mae_c": 1.6325336645611241,
+      "rmse_c": 2.06712210517917
+    },
+    {
+      "fold": 2,
+      "train_n": 7914,
+      "test_n": 1979,
+      "r2": 0.5581165925747724,
+      "mae_c": 1.7033227542997118,
+      "rmse_c": 2.147287748230449
+    },
+    {
+      "fold": 3,
+      "train_n": 7915,
+      "test_n": 1978,
+      "r2": 0.6049494149988697,
+      "mae_c": 1.6339499110576314,
+      "rmse_c": 2.093433536791723
+    },
+    {
+      "fold": 4,
+      "train_n": 7914,
+      "test_n": 1979,
+      "r2": 0.5427830282399981,
+      "mae_c": 1.6700186269878816,
+      "rmse_c": 2.132345125400352
+    },
+    {
+      "fold": 5,
+      "train_n": 7915,
+      "test_n": 1978,
+      "r2": 0.5457302458663839,
+      "mae_c": 1.6906381312789216,
+      "rmse_c": 2.1492115753434953
+    }
+  ],
+  "live_default_simulation": {
+    "avg_lst_before": 43.4634895324707,
+    "avg_lst_after": 41.786170959472656,
+    "mean_reduction": 1.677320122718811,
+    "max_lst_before": 49.92783737182617,
+    "max_lst_after": 45.73640441894531,
+    "extreme_zones_before": 7003,
+    "extreme_zones_after": 5147,
+    "extreme_zone_reduction_pct": 26.5029273168642,
+    "pixels_cooled_pct": 90.10411402001415,
+    "n_locations": 9893
+  },
+  "model_parameters": {
+    "n_estimators": 500,
+    "learning_rate": 0.05,
+    "max_depth": 6,
+    "min_child_weight": 3,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "objective": "reg:squarederror",
+    "random_state": 42,
+    "n_jobs": 2
+  },
+  "stored_comparison": [
+    {
+      "Dataset": "Dataset V2",
+      "Model": "XGBoost",
+      "Validation": "Spatial block cross-validation",
+      "R2": 0.51,
+      "MAE_C": 1.78,
+      "RMSE_C": 2.26
+    },
+    {
+      "Dataset": "Dataset V3",
+      "Model": "XGBoost",
+      "Validation": "Spatial block cross-validation",
+      "R2": 0.5691,
+      "MAE_C": 1.6645,
+      "RMSE_C": 2.1163
+    }
+  ],
+  "note": "Read-only checks. Model and source datasets were not modified. Software versions are recorded separately."
+}

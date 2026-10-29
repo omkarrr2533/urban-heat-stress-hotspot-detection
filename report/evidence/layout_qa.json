@@ -1,0 +1,29 @@
+{
+  "docx": "report/Urban_Heat_Stress_Hotspot_Detection_Project_Report.docx",
+  "pdf": "report/Urban_Heat_Stress_Hotspot_Detection_Project_Report.pdf",
+  "rendered_pages": 55,
+  "intended_pages": 55,
+  "page_count_pass": true,
+  "zip_integrity_pass": true,
+  "font_families": {
+    "Times New Roman": 1275
+  },
+  "font_sizes_pt": {
+    "12.0": 1177,
+    "14.0": 98
+  },
+  "all_text_times_new_roman": true,
+  "body_and_caption_size_12_headings_14": true,
+  "figures": 23,
+  "tables": 31,
+  "caption_page_issues": [],
+  "short_pages_after_cover": [],
+  "max_body_bottom_pt": 724.99,
+  "body_bottom_limit_pt": 731,
+  "validation_checks_passed": 26,
+  "validation_checks_total": 26,
+  "student_name_placeholders": 8,
+  "exam_number_placeholders": 8,
+  "missing_fonts": [],
+  "note": "PDF rendered with the supplied Office WASM renderer and genuine Times New Roman fonts. Microsoft Word pagination can vary slightly with printer/font metrics; explicit page breaks and conservative margins are used."
+}

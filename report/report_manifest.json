@@ -1,0 +1,565 @@
+{
+  "intended_physical_pages": 55,
+  "main_report_pages": 46,
+  "figures": [
+    [
+      "1.1",
+      "Decision-support workflow from environmental inputs to planning outputs",
+      1
+    ],
+    [
+      "2.1",
+      "Layered technology stack used by the project",
+      5
+    ],
+    [
+      "3.1",
+      "Iterative development and validation process",
+      11
+    ],
+    [
+      "4.1",
+      "System architecture and separation of analytical and application concerns",
+      13
+    ],
+    [
+      "4.2",
+      "Context-level data flow diagram (DFD Level 0)",
+      14
+    ],
+    [
+      "4.3",
+      "Major processes, external actors, and shared analytical stores (DFD Level 1)",
+      15
+    ],
+    [
+      "4.4",
+      "Expanded simulation process (DFD Level 2 / operational flowchart)",
+      16
+    ],
+    [
+      "4.5",
+      "Use-case diagram for planning, research, and technical integration",
+      17
+    ],
+    [
+      "4.6",
+      "Sequence diagram for a live dashboard or API simulation",
+      18
+    ],
+    [
+      "5.1",
+      "Observed temperature distribution and land-cover sample composition",
+      20
+    ],
+    [
+      "5.2",
+      "Correlation structure of continuous variables",
+      21
+    ],
+    [
+      "5.3",
+      "Spatial block cross-validation design",
+      22
+    ],
+    [
+      "5.4",
+      "Dependency-oriented view of the thirteen numbered notebooks",
+      24
+    ],
+    [
+      "6.1",
+      "Local dashboard capture: project overview and headline indicators",
+      25
+    ],
+    [
+      "6.2",
+      "Observed LST in geographic coordinates, reconstructed from the V3 sample",
+      26
+    ],
+    [
+      "6.3",
+      "Local dashboard capture: Heat Drivers and global SHAP importance",
+      27
+    ],
+    [
+      "6.4",
+      "Local dashboard capture: intervention controls and simulation pipeline",
+      28
+    ],
+    [
+      "6.5",
+      "Local capture of the default live simulation: paired before/after results",
+      29
+    ],
+    [
+      "7.1",
+      "Logical entities and lineage across the file-based data model",
+      30
+    ],
+    [
+      "8.1",
+      "Spatial distribution of the population-aware Heat Vulnerability Index",
+      33
+    ],
+    [
+      "8.2",
+      "Saved notebook SHAP beeswarm: feature values and directional contributions",
+      34
+    ],
+    [
+      "8.3",
+      "Top ten zones by mean of the best location-level cooling estimate",
+      35
+    ],
+    [
+      "9.1",
+      "Reproduced spatial out-of-fold predictions and residuals",
+      38
+    ]
+  ],
+  "tables": [
+    [
+      "1.1",
+      "Scope and boundaries of the implemented project",
+      3
+    ],
+    [
+      "1.2",
+      "Existing practice and the proposed response",
+      4
+    ],
+    [
+      "2.1",
+      "Core libraries and their implemented roles",
+      6
+    ],
+    [
+      "2.2",
+      "Documented data sources and analytical purpose",
+      7
+    ],
+    [
+      "2.3",
+      "Execution requirements and recommendations",
+      8
+    ],
+    [
+      "3.1",
+      "Functional requirements and implementation evidence",
+      9
+    ],
+    [
+      "3.2",
+      "Quality requirements and current design response",
+      10
+    ],
+    [
+      "3.3",
+      "Principal project risks and mitigation priorities",
+      12
+    ],
+    [
+      "4.1",
+      "Representative use-case specification",
+      17
+    ],
+    [
+      "4.2",
+      "Reusable module responsibilities",
+      18
+    ],
+    [
+      "5.1",
+      "Dataset evolution and final analytical path",
+      19
+    ],
+    [
+      "5.2",
+      "Final V3 descriptive audit",
+      20
+    ],
+    [
+      "5.3",
+      "Deployed eleven-feature schema",
+      21
+    ],
+    [
+      "5.4",
+      "Saved estimator and executed V3 training configuration",
+      23
+    ],
+    [
+      "5.5",
+      "Notebook-reported V3 model comparison (mean fold metrics)",
+      23
+    ],
+    [
+      "5.6",
+      "Notebook groups and generated products",
+      24
+    ],
+    [
+      "6.1",
+      "Historical V2 and final V3 XGBoost results",
+      27
+    ],
+    [
+      "7.1",
+      "Core data fields and constraints",
+      30
+    ],
+    [
+      "7.2",
+      "Implemented API endpoints",
+      31
+    ],
+    [
+      "7.3",
+      "Deployment and integration considerations",
+      32
+    ],
+    [
+      "8.1",
+      "Leading thermal and vulnerability zones from saved V3 outputs",
+      33
+    ],
+    [
+      "8.2",
+      "Leading mean absolute SHAP values",
+      34
+    ],
+    [
+      "8.3",
+      "Notebook V3 scenarios across all 9,893 sampled locations",
+      35
+    ],
+    [
+      "9.1",
+      "Executed data and inference checks",
+      36
+    ],
+    [
+      "9.2",
+      "Executed API and integration test cases",
+      37
+    ],
+    [
+      "9.3",
+      "Saved notebook results and report reproduction",
+      38
+    ],
+    [
+      "10.1",
+      "Objective-level discussion of the implemented outcome",
+      39
+    ],
+    [
+      "11.1",
+      "Proposed enhancements and their expected value",
+      42
+    ],
+    [
+      "A.1",
+      "Indicative complexity of major operations",
+      43
+    ],
+    [
+      "B.1",
+      "Publication details to be completed when applicable",
+      44
+    ],
+    [
+      "C.1",
+      "Details to be completed after the institutional check",
+      45
+    ]
+  ],
+  "contents": [
+    [
+      "CHAPTER 1: INTRODUCTION",
+      1,
+      1
+    ],
+    [
+      "1.1 Project Introduction",
+      1,
+      2
+    ],
+    [
+      "1.2 Background and Motivation",
+      2,
+      2
+    ],
+    [
+      "1.5 Project Objectives",
+      3,
+      2
+    ],
+    [
+      "1.7 Existing System and Identified Gaps",
+      4,
+      2
+    ],
+    [
+      "CHAPTER 2: TECHNOLOGY STACK",
+      5,
+      1
+    ],
+    [
+      "2.1 Technology-Stack Overview",
+      5,
+      2
+    ],
+    [
+      "2.2 Python and Data-Processing Libraries",
+      6,
+      2
+    ],
+    [
+      "2.4 Earth-Observation and Geospatial Technologies",
+      7,
+      2
+    ],
+    [
+      "2.6 Application, API, and Deployment Technologies",
+      8,
+      2
+    ],
+    [
+      "CHAPTER 3: SYSTEM ANALYSIS AND REQUIREMENTS",
+      9,
+      1
+    ],
+    [
+      "3.1 Stakeholders and Functional Requirements",
+      9,
+      2
+    ],
+    [
+      "3.2 Non-Functional Requirements",
+      10,
+      2
+    ],
+    [
+      "3.3 Feasibility Analysis",
+      11,
+      2
+    ],
+    [
+      "3.5 Constraints, Assumptions, and Risks",
+      12,
+      2
+    ],
+    [
+      "CHAPTER 4: SYSTEM DESIGN AND ARCHITECTURE",
+      13,
+      1
+    ],
+    [
+      "4.1 Overall System Architecture",
+      13,
+      2
+    ],
+    [
+      "4.2 Context-Level Data Flow Diagram",
+      14,
+      2
+    ],
+    [
+      "4.4 Level 1 Processes and Data Stores",
+      15,
+      2
+    ],
+    [
+      "4.5 Cooling-Simulation Flowchart",
+      16,
+      2
+    ],
+    [
+      "4.6 Use-Case Design",
+      17,
+      2
+    ],
+    [
+      "4.7 Sequence and Module Design",
+      18,
+      2
+    ],
+    [
+      "CHAPTER 5: DATA AND MACHINE-LEARNING IMPLEMENTATION",
+      19,
+      1
+    ],
+    [
+      "5.1 Dataset Versions and Source Provenance",
+      19,
+      2
+    ],
+    [
+      "5.2 Data Audit, Cleaning, and Exploratory Analysis",
+      20,
+      2
+    ],
+    [
+      "5.3 Feature Engineering and Leakage Control",
+      21,
+      2
+    ],
+    [
+      "5.4 Model Development and Spatial Validation",
+      22,
+      2
+    ],
+    [
+      "5.5 Final XGBoost Configuration and Model Selection",
+      23,
+      2
+    ],
+    [
+      "5.6 Notebook Workflow and Reproducibility",
+      24,
+      2
+    ],
+    [
+      "CHAPTER 6: DASHBOARD AND DECISION-SUPPORT IMPLEMENTATION",
+      25,
+      1
+    ],
+    [
+      "6.1 Dashboard Structure and Navigation",
+      25,
+      2
+    ],
+    [
+      "6.2 Hotspot and Vulnerability Views",
+      26,
+      2
+    ],
+    [
+      "6.3 Explainability and Model-Validation Views",
+      27,
+      2
+    ],
+    [
+      "6.4 Interactive Cooling-Strategy Simulator",
+      28,
+      2
+    ],
+    [
+      "6.5 Simulator Results and Export Behaviour",
+      29,
+      2
+    ],
+    [
+      "CHAPTER 7: DATA AND API DESIGN",
+      30,
+      1
+    ],
+    [
+      "7.1 Logical Data Model and File Contracts",
+      30,
+      2
+    ],
+    [
+      "7.2 REST API Design",
+      31,
+      2
+    ],
+    [
+      "7.4 Deployment, Security, and Integration Boundaries",
+      32,
+      2
+    ],
+    [
+      "CHAPTER 8: DASHBOARD ANALYTICS AND RESULTS",
+      33,
+      1
+    ],
+    [
+      "8.1 Heat and Vulnerability Analytics",
+      33,
+      2
+    ],
+    [
+      "8.2 Heat-Driver and Explainability Analytics",
+      34,
+      2
+    ],
+    [
+      "8.3 Cooling-Scenario and Priority Analytics",
+      35,
+      2
+    ],
+    [
+      "CHAPTER 9: TESTING AND VALIDATION",
+      36,
+      1
+    ],
+    [
+      "9.1 Testing Strategy and Data Integrity",
+      36,
+      2
+    ],
+    [
+      "9.2 API, Integration, and Functional Testing",
+      37,
+      2
+    ],
+    [
+      "9.4 Independent Spatial-Validation Reproduction",
+      38,
+      2
+    ],
+    [
+      "CHAPTER 10: RESULTS AND DISCUSSION",
+      39,
+      1
+    ],
+    [
+      "10.1 Achievement of Project Objectives",
+      39,
+      2
+    ],
+    [
+      "10.3 Limitations and Threats to Validity",
+      40,
+      2
+    ],
+    [
+      "CHAPTER 11: CONCLUSION AND FUTURE SCOPE",
+      41,
+      1
+    ],
+    [
+      "11.1 Advantages of the Developed System",
+      41,
+      2
+    ],
+    [
+      "11.3 Future Scope",
+      42,
+      2
+    ],
+    [
+      "APPENDIX A: FEASIBILITY AND COMPLEXITY ASSESSMENT",
+      43,
+      1
+    ],
+    [
+      "APPENDIX B: PAPER PUBLICATION / PRESENTATION",
+      44,
+      1
+    ],
+    [
+      "APPENDIX C: PLAGIARISM REPORT",
+      45,
+      1
+    ],
+    [
+      "REFERENCES",
+      46,
+      1
+    ]
+  ]
+}
